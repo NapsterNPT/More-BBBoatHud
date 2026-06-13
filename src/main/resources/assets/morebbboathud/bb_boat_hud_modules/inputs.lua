@@ -7,9 +7,9 @@ local rowHeight = 12
 local padding = 2
 
 local items = {
-    { label = "SPACE",  var = pressingSpace },
-    { label = "LCLICK", var = pressingLeftClick },
-    { label = "RCLICK", var = pressingRightClick },
+    {label = "SPACE",  var = pressingSpace },
+    {label = "LCLICK", var = pressingLeftClick },
+    {label = "RCLICK", var = pressingRightClick },
 }
 
 local totalHeight = #items * (rowHeight + padding) + padding
@@ -22,11 +22,8 @@ for i, item in ipairs(items) do
 
     offsetPosition(padding, y, function()
         local color
-        if item.var then
-            color = activeColor
-        else
-            color = inactiveColor
-        end
+        if item.var thencolor = activeColor
+        else color = inactiveColor end
 
         renderRect(rowHeight, rowHeight, color, "TOP_LEFT")
 
