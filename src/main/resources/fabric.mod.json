@@ -3,20 +3,20 @@
 	"id": "morebbboathud",
 	"version": "${version}",
 	"name": "More BBBoatHud",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "Addon of the mod BBBoatHud. ",
 	"authors": [
-		"Me!"
+		"NapsterNPT"
 	],
-	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	"contact": {"homepage": "https://napsternpt.github.io/",
+		"sources": "https://github.com/NapsterNPT/More-BBBoatHud",
+		"issues": "https://github.com/NapsterNPT/More-BBBoatHud/issues"
 	},
-	"license": "CC0-1.0",
+	"license": "GPL-3.0",
 	"icon": "assets/morebbboathud/icon.png",
-	"environment": "*",
+	"environment": "client",
 	"entrypoints": {
-		"main": [
-			"net.napsternpt.morebbboathud.MoreBBBoatHud"
+		"client": [
+			"net.napsternpt.morebbboathud.MoreBBBoatHudClient"
 		]
 	},
 	"mixins": [
@@ -26,6 +26,7 @@
 		"fabricloader": ">=0.19.3",
 		"minecraft": "~1.21.4",
 		"java": ">=21",
-		"fabric-api": "*"
+		"fabric-api": "*",
+		"bb_boat_hud": ">=1.23"
 	}
 }
