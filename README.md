@@ -1,6 +1,6 @@
 # More BBBoatHud
 
-Adds `pressingSpace`, `pressingLeftClick`, and `pressingRightClick` to [BBBoatHud](https://modrinth.com/mod/bb_boat_hud) Lua modules.
+Adds `pressingSpace`, `pressingLeftClick`, and `pressingRightClick` to [BBBoatHud](https://modrinth.com/mod/bb_boat_hud) that is required for this mod to work.
 
 ## About
 
