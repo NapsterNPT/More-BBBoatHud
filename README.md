@@ -8,7 +8,7 @@ Adds `pressingSpace`, `pressingLeftClick`, and `pressingRightClick` to [BBBoatHu
 
 BBBoatHud exposes boat input states like `pressingForward`, `pressingBack`, `pressingLeft`, `pressingRight` to Lua modules, but doesn't track jump/attack/use inputs. This addon fills that gap.
 
-## Variables exposed to Lua
+### Variables
 
 | Variable             |
 |----------------------|
@@ -16,7 +16,22 @@ BBBoatHud exposes boat input states like `pressingForward`, `pressingBack`, `pre
 | `pressingLeftClick`  |
 | `pressingRightClick` |
 
-These are available in any Lua module — existing or custom.
+### Functions
+
+| Function                   | Returns      | Description                                |
+|----------------------------|--------------|--------------------------------------------|
+| `print(message)`           | —            | Prints a message to chat                   |
+| `getWidth("path")`         | number       | Width of a texture in pixels (0 if missing)|
+| `getHeight("path")`        | number       | Height of a texture in pixels (0 if missing)|
+
+The `print()` function shows a blue underlined message in chat. Hover to see which module sent it.
+
+Texture paths work the same as `renderTexture` — relative to `textures/bb_boat_hud_modules/` in the module's namespace.
+
+```lua
+local w = getWidth("my_texture.png")
+local h = getHeight("my_texture.png")
+```
 
 ## Included modules
 
