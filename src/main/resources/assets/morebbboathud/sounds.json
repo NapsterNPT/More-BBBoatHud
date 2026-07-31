@@ -1,0 +1,14 @@
+{
+  "metal_pipe": {
+    "subtitle": "sound.morebbboathud.metal_pipe",
+    "sounds": [
+      "morebbboathud:bb_boat_hud_modules/metal_pipe"
+    ]
+  },
+  "vineboom": {
+    "subtitle": "sound.morebbboathud.vineboom",
+    "sounds": [
+      "morebbboathud:bb_boat_hud_modules/vineboom"
+    ]
+  }
+}

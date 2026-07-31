@@ -6,6 +6,7 @@ import net.minecraft.text.HoverEvent;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import net.napsternpt.morebbboathud.MoreBBBoatHudClient;
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaBoolean;
 import org.luaj.vm2.LuaValue;
@@ -34,6 +35,8 @@ public class HudModuleMixin {
 		globals.set("pressingSpace", LuaBoolean.valueOf(options.jumpKey.isPressed()));
 		globals.set("pressingLeftClick", LuaBoolean.valueOf(options.attackKey.isPressed()));
 		globals.set("pressingRightClick", LuaBoolean.valueOf(options.useKey.isPressed()));
+		globals.set("touchingBlock", LuaBoolean.valueOf(MoreBBBoatHudClient.BLOCK_COLLISION));
+		globals.set("touchingEntity", LuaBoolean.valueOf(MoreBBBoatHudClient.ENTITY_COLLISION));
 	}
 
 	@Inject(method = "<init>", at = @At("TAIL"))
