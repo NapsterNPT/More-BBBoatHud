@@ -54,36 +54,19 @@ public abstract class HudModuleMixin {
 		globals.set("pressingSpace", LuaBoolean.valueOf(options.jumpKey.isPressed()));
 		globals.set("pressingLeftClick", LuaBoolean.valueOf(options.attackKey.isPressed()));
 		globals.set("pressingRightClick", LuaBoolean.valueOf(options.useKey.isPressed()));
-		globals.set("menuOpen", LuaBoolean.valueOf(MoreBBBoatHudClient.BUTTON_KEY.isPressed()));
 	}
 
 	@Inject(method = "<init>", at = @At("TAIL"))
 	private void onInit(CallbackInfo ci) {
 		globals.set("print", printFunction());
 		globals.set("renderButton", renderButton());
+		globals.set("onMenuOpen", onMenuOpen());
 		globals.set("getWidth", getSize(true));
 		globals.set("getHeight", getSize(false));
 	}
 
-	private boolean shouldCenterMenu() {
-		return MoreBBBoatHudClient.BUTTON_KEY.isPressed() && "morebbboathud".equals(getIdentifier().getNamespace());
-	}
-
-	@Inject(method = "render", at = @At("HEAD"))
-	private void onRenderHead(DrawContext ctx, CallbackInfoReturnable<String> cir) {
-		if (shouldCenterMenu()) {
-			var window = MinecraftClient.getInstance().getWindow();
-			ctx.getMatrices().push();
-			ctx.getMatrices().loadIdentity();
-			ctx.getMatrices().translate(window.getScaledWidth() / 2f, window.getScaledHeight() / 2f, 0f);
-		}
-	}
-
 	@Inject(method = "render", at = @At("RETURN"))
 	private void onRenderReturn(DrawContext ctx, CallbackInfoReturnable<String> cir) {
-		if (shouldCenterMenu()) {
-			ctx.getMatrices().pop();
-		}
 		while (!MoreBBBoatHudClient.PENDING_CALLBACKS.isEmpty()) {
 			LuaValue callback = MoreBBBoatHudClient.PENDING_CALLBACKS.removeFirst();
 			try {
@@ -167,6 +150,53 @@ public abstract class HudModuleMixin {
 				return LuaValue.NIL;
 			}
 		};
+	}
+
+	private LuaValue onMenuOpen() {
+		return new VarArgFunction() {
+			@Override
+			public Varargs invoke(Varargs v) {
+				String anchor = v.optjstring(1, "MIDDLE_CENTER");
+				LuaValue fn = v.checkfunction(2);
+
+				if (!MoreBBBoatHudClient.BUTTON_KEY.isPressed()) {
+					return LuaValue.NIL;
+				}
+
+				var window = MinecraftClient.getInstance().getWindow();
+				int[] base = screenAnchorPos(anchor, window.getScaledWidth(), window.getScaledHeight());
+				final float cx = base[0];
+				final float cy = base[1];
+
+				int idx = drawCalls.size();
+				fn.call();
+
+				drawCalls.add(idx, ctx -> {
+					ctx.getMatrices().push();
+					ctx.getMatrices().loadIdentity();
+					ctx.getMatrices().translate(cx, cy, 0f);
+				});
+				drawCalls.add(ctx -> ctx.getMatrices().pop());
+				return LuaValue.NIL;
+			}
+		};
+	}
+
+	private static int[] screenAnchorPos(String anchor, int w, int h) {
+		String[] parts = anchor.split("_");
+		String vertical = parts.length > 0 ? parts[0] : "MIDDLE";
+		String horizontal = parts.length > 1 ? parts[1] : "CENTER";
+		int x = switch (horizontal.toUpperCase()) {
+			case "LEFT" -> 0;
+			case "RIGHT" -> w;
+			default -> w / 2;
+		};
+		int y = switch (vertical.toUpperCase()) {
+			case "TOP" -> 0;
+			case "BOTTOM" -> h;
+			default -> h / 2;
+		};
+		return new int[]{x, y};
 	}
 
 	private static int[] anchoredPos(String anchor, int width, int height) {
