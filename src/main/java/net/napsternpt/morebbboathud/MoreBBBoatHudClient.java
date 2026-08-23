@@ -9,6 +9,9 @@ import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MoreBBBoatHudClient implements ClientModInitializer {
 	private static final Logger LOGGER = LoggerFactory.getLogger("morebbboathud");
 
@@ -22,6 +25,7 @@ public class MoreBBBoatHudClient implements ClientModInitializer {
 	public static boolean CLICKED = false;
 	public static double CLICK_X;
 	public static double CLICK_Y;
+	public static final List<org.luaj.vm2.LuaValue> PENDING_CALLBACKS = new ArrayList<>();
 
 	@Override
 	public void onInitializeClient() {

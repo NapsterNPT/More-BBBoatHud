@@ -9,6 +9,8 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.napsternpt.morebbboathud.MoreBBBoatHudClient;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaBoolean;
 import org.luaj.vm2.LuaError;
@@ -20,6 +22,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import uk.co.cablepost.bb_boat_hud.client.HudModule;
 
 import java.io.IOException;
@@ -60,6 +63,35 @@ public abstract class HudModuleMixin {
 		globals.set("renderButton", renderButton());
 		globals.set("getWidth", getSize(true));
 		globals.set("getHeight", getSize(false));
+	}
+
+	private boolean shouldCenterMenu() {
+		return MoreBBBoatHudClient.BUTTON_KEY.isPressed() && "morebbboathud".equals(getIdentifier().getNamespace());
+	}
+
+	@Inject(method = "render", at = @At("HEAD"))
+	private void onRenderHead(DrawContext ctx, CallbackInfoReturnable<String> cir) {
+		if (shouldCenterMenu()) {
+			var window = MinecraftClient.getInstance().getWindow();
+			ctx.getMatrices().push();
+			ctx.getMatrices().loadIdentity();
+			ctx.getMatrices().translate(window.getScaledWidth() / 2f, window.getScaledHeight() / 2f, 0f);
+		}
+	}
+
+	@Inject(method = "render", at = @At("RETURN"))
+	private void onRenderReturn(DrawContext ctx, CallbackInfoReturnable<String> cir) {
+		if (shouldCenterMenu()) {
+			ctx.getMatrices().pop();
+		}
+		while (!MoreBBBoatHudClient.PENDING_CALLBACKS.isEmpty()) {
+			LuaValue callback = MoreBBBoatHudClient.PENDING_CALLBACKS.removeFirst();
+			try {
+				callback.call();
+			} catch (LuaError e) {
+				error = "renderButton: " + e.getMessage();
+			}
+		}
 	}
 
 	private LuaValue printFunction() {
@@ -104,32 +136,33 @@ public abstract class HudModuleMixin {
 				double mouseY = client.mouse.getY() / scale;
 
 				int[] pos = anchoredPos(anchor, width, height);
-				var window = client.getWindow();
-				final int fx0 = window.getScaledWidth() / 2 + pos[0];
-				final int fy0 = window.getScaledHeight() / 2 + pos[1];
+				final int fx0 = pos[0];
+				final int fy0 = pos[1];
 				final int fw = width;
 				final int fh = height;
-				boolean hovered = canBePressed
-						&& mouseX >= fx0 && mouseX < fx0 + fw
-						&& mouseY >= fy0 && mouseY < fy0 + fh;
-
-				if (canBePressed && MoreBBBoatHudClient.CLICKED
-						&& MoreBBBoatHudClient.CLICK_X >= fx0 && MoreBBBoatHudClient.CLICK_X < fx0 + fw
-						&& MoreBBBoatHudClient.CLICK_Y >= fy0 && MoreBBBoatHudClient.CLICK_Y < fy0 + fh) {
-					MoreBBBoatHudClient.CLICKED = false;
-					try {
-						callback.call();
-					} catch (LuaError e) {
-						error = "renderButton: " + e.getMessage();
-					}
-				}
+				final double fmx = mouseX;
+				final double fmy = mouseY;
 
 				drawCalls.add(ctx -> {
-					ctx.getMatrices().push();
-					ctx.getMatrices().loadIdentity();
+					Matrix4f inv = new Matrix4f(ctx.getMatrices().peek().getPositionMatrix());
+					inv.invert();
+
+					Vector3f mouseLocal = new Vector3f((float) fmx, (float) fmy, 0f).mulPosition(inv);
+					boolean hovered = canBePressed
+							&& mouseLocal.x >= fx0 && mouseLocal.x < fx0 + fw
+							&& mouseLocal.y >= fy0 && mouseLocal.y < fy0 + fh;
+
+					if (canBePressed && MoreBBBoatHudClient.CLICKED) {
+						Vector3f clickLocal = new Vector3f((float) MoreBBBoatHudClient.CLICK_X, (float) MoreBBBoatHudClient.CLICK_Y, 0f).mulPosition(inv);
+						if (clickLocal.x >= fx0 && clickLocal.x < fx0 + fw
+								&& clickLocal.y >= fy0 && clickLocal.y < fy0 + fh) {
+							MoreBBBoatHudClient.CLICKED = false;
+							MoreBBBoatHudClient.PENDING_CALLBACKS.add(callback);
+						}
+					}
+
 					Identifier tex = !canBePressed ? BTN_DISABLED : hovered ? BTN_HIGHLIGHTED : BTN_NORMAL;
 					ctx.drawGuiTexture(RenderLayer::getGuiTextured, tex, fx0, fy0, fw, fh);
-					ctx.getMatrices().pop();
 				});
 				return LuaValue.NIL;
 			}
