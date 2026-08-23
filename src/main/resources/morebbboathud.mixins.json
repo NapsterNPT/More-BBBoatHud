@@ -3,7 +3,10 @@
 	"package": "net.napsternpt.morebbboathud.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"client": [
-		"HudModuleMixin"
+		"HudModuleMixin",
+		"MouseMixin",
+		"BbBoatHudClientMixin",
+		"CrosshairMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
