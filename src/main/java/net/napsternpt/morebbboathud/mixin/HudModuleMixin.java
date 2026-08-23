@@ -1,6 +1,5 @@
 package net.napsternpt.morebbboathud.mixin;
 
-import me.shedaniel.autoconfig.AutoConfig;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.render.RenderLayer;
@@ -21,10 +20,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import uk.co.cablepost.bb_boat_hud.client.AnchorType;
 import uk.co.cablepost.bb_boat_hud.client.HudModule;
-import uk.co.cablepost.bb_boat_hud.client.HudModulePlacement;
-import uk.co.cablepost.bb_boat_hud.config.ModConfig;
 
 import java.io.IOException;
 import java.util.List;
@@ -106,93 +102,38 @@ public abstract class HudModuleMixin {
 				double scale = client.getWindow().getScaleFactor();
 				double mouseX = client.mouse.getX() / scale;
 				double mouseY = client.mouse.getY() / scale;
-				double[] localMouse = toLocalSpace(mouseX, mouseY);
-				double mx = localMouse[0];
-				double my = localMouse[1];
 
 				int[] pos = anchoredPos(anchor, width, height);
-				int x0 = pos[0];
-				int y0 = pos[1];
+				var window = client.getWindow();
+				final int fx0 = window.getScaledWidth() / 2 + pos[0];
+				final int fy0 = window.getScaledHeight() / 2 + pos[1];
+				final int fw = width;
+				final int fh = height;
 				boolean hovered = canBePressed
-						&& mx >= x0 && mx < x0 + width
-						&& my >= y0 && my < y0 + height;
+						&& mouseX >= fx0 && mouseX < fx0 + fw
+						&& mouseY >= fy0 && mouseY < fy0 + fh;
 
-				if (canBePressed && MoreBBBoatHudClient.CLICKED) {
-					double cx = MoreBBBoatHudClient.CLICK_X;
-					double cy = MoreBBBoatHudClient.CLICK_Y;
-					double[] localClick = toLocalSpace(cx, cy);
-					if (localClick[0] >= x0 && localClick[0] < x0 + width
-							&& localClick[1] >= y0 && localClick[1] < y0 + height) {
-						MoreBBBoatHudClient.CLICKED = false;
-						try {
-							callback.call();
-						} catch (LuaError e) {
-							error = "renderButton: " + e.getMessage();
-						}
+				if (canBePressed && MoreBBBoatHudClient.CLICKED
+						&& MoreBBBoatHudClient.CLICK_X >= fx0 && MoreBBBoatHudClient.CLICK_X < fx0 + fw
+						&& MoreBBBoatHudClient.CLICK_Y >= fy0 && MoreBBBoatHudClient.CLICK_Y < fy0 + fh) {
+					MoreBBBoatHudClient.CLICKED = false;
+					try {
+						callback.call();
+					} catch (LuaError e) {
+						error = "renderButton: " + e.getMessage();
 					}
 				}
 
-				final int fx0 = x0;
-				final int fy0 = y0;
-				final int fw = width;
-				final int fh = height;
 				drawCalls.add(ctx -> {
+					ctx.getMatrices().push();
+					ctx.getMatrices().loadIdentity();
 					Identifier tex = !canBePressed ? BTN_DISABLED : hovered ? BTN_HIGHLIGHTED : BTN_NORMAL;
 					ctx.drawGuiTexture(RenderLayer::getGuiTextured, tex, fx0, fy0, fw, fh);
+					ctx.getMatrices().pop();
 				});
 				return LuaValue.NIL;
 			}
 		};
-	}
-
-	private double[] toLocalSpace(double screenX, double screenY) {
-		var window = MinecraftClient.getInstance().getWindow();
-		float anchorX = 0;
-		float anchorY = 0;
-		HudModulePlacement placement = null;
-		try {
-			var config = (ModConfig) AutoConfig.getConfigHolder(ModConfig.class).getConfig();
-			String id = getIdentifier().toString();
-			for (var p : config.modulePlacements) {
-				if (p.identifier.equals(id)) {
-					placement = p;
-					break;
-				}
-			}
-		} catch (Exception ignored) {
-		}
-
-		if (placement != null) {
-			if (placement.anchorType == AnchorType.TOP_CENTER || placement.anchorType == AnchorType.MIDDLE_CENTER
-					|| placement.anchorType == AnchorType.BOTTOM_CENTER) {
-				anchorX = window.getScaledWidth() / 2f;
-			} else if (placement.anchorType == AnchorType.TOP_RIGHT || placement.anchorType == AnchorType.MIDDLE_RIGHT
-					|| placement.anchorType == AnchorType.BOTTOM_RIGHT) {
-				anchorX = window.getScaledWidth();
-			}
-			if (placement.anchorType == AnchorType.MIDDLE_LEFT || placement.anchorType == AnchorType.MIDDLE_CENTER
-					|| placement.anchorType == AnchorType.MIDDLE_RIGHT) {
-				anchorY = window.getScaledHeight() / 2f;
-			} else if (placement.anchorType == AnchorType.BOTTOM_LEFT || placement.anchorType == AnchorType.BOTTOM_CENTER
-					|| placement.anchorType == AnchorType.BOTTOM_RIGHT) {
-				anchorY = window.getScaledHeight();
-			}
-		}
-
-		double dx = screenX - anchorX - (placement != null ? placement.xOffset : 0);
-		double dy = screenY - anchorY - (placement != null ? placement.yOffset : 0);
-		float scale = placement != null && placement.scale != 0 ? placement.scale : 1;
-		dx /= scale;
-		dy /= scale;
-
-		float angle = placement != null ? placement.angle : 0;
-		if (Math.abs(angle) > 1.0E-5f) {
-			double rad = Math.toRadians(angle);
-			double cos = Math.cos(rad);
-			double sin = Math.sin(rad);
-			return new double[]{dx * cos + dy * sin, -dx * sin + dy * cos};
-		}
-		return new double[]{dx, dy};
 	}
 
 	private static int[] anchoredPos(String anchor, int width, int height) {
