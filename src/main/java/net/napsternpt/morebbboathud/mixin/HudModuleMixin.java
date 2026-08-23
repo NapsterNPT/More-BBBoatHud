@@ -19,6 +19,7 @@ import org.luaj.vm2.Varargs;
 import org.luaj.vm2.lib.VarArgFunction;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -31,6 +32,12 @@ import java.util.function.Consumer;
 
 @Mixin(HudModule.class)
 public abstract class HudModuleMixin {
+	@Unique
+	private boolean moreBBBoatHud$menuWasOpen = false;
+
+	@Unique
+	private boolean moreBBBoatHud$menuJustClosed = false;
+
 	private static final Identifier BTN_NORMAL = Identifier.ofVanilla("widget/button");
 	private static final Identifier BTN_HIGHLIGHTED = Identifier.ofVanilla("widget/button_highlighted");
 	private static final Identifier BTN_DISABLED = Identifier.ofVanilla("widget/button_disabled");
@@ -54,6 +61,10 @@ public abstract class HudModuleMixin {
 		globals.set("pressingSpace", LuaBoolean.valueOf(options.jumpKey.isPressed()));
 		globals.set("pressingLeftClick", LuaBoolean.valueOf(options.attackKey.isPressed()));
 		globals.set("pressingRightClick", LuaBoolean.valueOf(options.useKey.isPressed()));
+
+		boolean menuOpen = MoreBBBoatHudClient.BUTTON_KEY.isPressed();
+		moreBBBoatHud$menuJustClosed = moreBBBoatHud$menuWasOpen && !menuOpen;
+		moreBBBoatHud$menuWasOpen = menuOpen;
 	}
 
 	@Inject(method = "<init>", at = @At("TAIL"))
@@ -61,6 +72,7 @@ public abstract class HudModuleMixin {
 		globals.set("print", printFunction());
 		globals.set("renderButton", renderButton());
 		globals.set("onMenuOpen", onMenuOpen());
+		globals.set("onMenuClose", onMenuClose());
 		globals.set("getWidth", getSize(true));
 		globals.set("getHeight", getSize(false));
 	}
@@ -177,6 +189,26 @@ public abstract class HudModuleMixin {
 					ctx.getMatrices().translate(cx, cy, 0f);
 				});
 				drawCalls.add(ctx -> ctx.getMatrices().pop());
+				return LuaValue.NIL;
+			}
+		};
+	}
+
+	private LuaValue onMenuClose() {
+		return new VarArgFunction() {
+			@Override
+			public Varargs invoke(Varargs v) {
+				LuaValue fn = v.checkfunction(1);
+
+				if (!moreBBBoatHud$menuJustClosed) {
+					return LuaValue.NIL;
+				}
+
+				try {
+					fn.call();
+				} catch (LuaError e) {
+					error = "onMenuClose: " + e.getMessage();
+				}
 				return LuaValue.NIL;
 			}
 		};
