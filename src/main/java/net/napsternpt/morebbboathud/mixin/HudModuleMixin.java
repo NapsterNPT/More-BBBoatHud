@@ -2,7 +2,9 @@ package net.napsternpt.morebbboathud.mixin;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.RenderLayer;
+//? if >=1.21.4 {
+/*import net.minecraft.client.render.RenderLayer;
+*///?}
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.Text;
@@ -157,7 +159,11 @@ public abstract class HudModuleMixin {
 					}
 
 					Identifier tex = !canBePressed ? BTN_DISABLED : hovered ? BTN_HIGHLIGHTED : BTN_NORMAL;
-					ctx.drawGuiTexture(RenderLayer::getGuiTextured, tex, fx0, fy0, fw, fh);
+					//? if >=1.21.4 {
+					/*ctx.drawGuiTexture(RenderLayer::getGuiTextured, tex, fx0, fy0, fw, fh);
+					*///?} else {
+					ctx.drawGuiTexture(tex, fx0, fy0, fw, fh);
+					//?}
 				});
 				return LuaValue.NIL;
 			}

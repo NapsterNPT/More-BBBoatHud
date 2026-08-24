@@ -3,8 +3,12 @@ plugins {
 	id 'maven-publish'
 }
 
-version = project.mod_version
+version = "${project.mod_version}-${project.minecraft_version}"
 group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
 
 repositories {
 	mavenCentral()
@@ -33,16 +37,24 @@ dependencies {
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
 	modImplementation "maven.modrinth:bb_boat_hud:${project.bb_boat_hud_version}"
-	modImplementation "me.shedaniel.cloth:cloth-config-fabric:17.0.144"
+	modImplementation "me.shedaniel.cloth:cloth-config-fabric:${project.cloth_config_version}"
 	implementation "com.github.wagyourtail.luaj:luaj-jse:f062b53a34"
 }
 
 processResources {
-	def version = project.version
 	inputs.property "version", version
+	inputs.property "minecraft_version", project.minecraft_version
 
 	filesMatching("fabric.mod.json") {
-		expand "version": version
+		expand "version": project.mod_version,
+				"minecraft_version": project.minecraft_version
+	}
+}
+
+loom {
+	runConfigs.all {
+		ideConfigGenerated true
+		runDir "../../run"
 	}
 }
 
