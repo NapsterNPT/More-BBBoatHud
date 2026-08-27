@@ -19,7 +19,7 @@ Addon for the mod [BBBoatHud](https://modrinth.com/mod/bb_boat_hud) (required fo
 |--------------------------------------------------------------------------------|---------|--------------------------------------------------------------------|
 | `print(message)`                                                               | -       | Prints a message to chat                                           |
 | `renderButton(width, height, canBeUsed, anchor, function)`                     | -       | Draws a clickable button                                           |
-| `renderSlider(width, height, canBeUsed, minValue, maxValue, anchor, function)` | -       | Draws a draggable slider, `sliderValue` is set before the callback |
+| `renderSlider(width, height, canBeUsed, minValue, maxValue, value, anchor, function)` | -       | Draws a draggable slider, `sliderValue` is set before the callback |
 | `onMenuOpen(anchor, function)`                                                 | -       | Run the function when the menu gets open                           |
 | `onMenuClose(function)`                                                        | -       | Run the function when the menu gets closed                         |
 | `getWidth("path")`                                                             | number  | Returns the width of a texture in pixels                           |

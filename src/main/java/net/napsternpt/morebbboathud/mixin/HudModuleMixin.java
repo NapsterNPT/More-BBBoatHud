@@ -194,8 +194,9 @@ public abstract class HudModuleMixin {
 				boolean canBeUsed = v.optboolean(3, true);
 				double minValue = v.checkdouble(4);
 				double maxValue = v.checkdouble(5);
-				String anchor = v.optjstring(6, "MIDDLE_CENTER");
-				LuaValue callback = v.checkfunction(7);
+				double initialValue = v.checkdouble(6);
+				String anchor = v.optjstring(7, "MIDDLE_CENTER");
+				LuaValue callback = v.checkfunction(8);
 
 				var client = MinecraftClient.getInstance();
 				double scale = client.getWindow().getScaleFactor();
@@ -213,7 +214,7 @@ public abstract class HudModuleMixin {
 				final double fmax = maxValue;
 
 				String id = "slider_" + (moreBBBoatHud$sliderFrameCounter++);
-				double initial = (minValue + maxValue) / 2.0;
+				double initial = Math.clamp((initialValue - minValue) / (maxValue - minValue), 0, 1);
 				sliderStates.putIfAbsent(id, new double[]{initial, 0});
 				final String fid = id;
 
