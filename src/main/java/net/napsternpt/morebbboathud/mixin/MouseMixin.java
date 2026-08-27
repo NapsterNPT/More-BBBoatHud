@@ -13,10 +13,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MouseMixin {
 	@Inject(method = "onMouseButton", at = @At("HEAD"), cancellable = true)
 	private void freeMouseWhileButtonHeld(long window, int button, int action, int mods, CallbackInfo ci) {
+		MinecraftClient client = MinecraftClient.getInstance();
+		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+			MoreBBBoatHudClient.MOUSE_DOWN = (action == GLFW.GLFW_PRESS);
+		}
 		if (action != GLFW.GLFW_PRESS) {
 			return;
 		}
-		MinecraftClient client = MinecraftClient.getInstance();
 		if (client.currentScreen == null && MoreBBBoatHudClient.BUTTON_KEY.isPressed()) {
 			ci.cancel();
 			double scale = client.getWindow().getScaleFactor();

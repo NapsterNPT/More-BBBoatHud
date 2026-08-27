@@ -3,14 +3,15 @@ package net.napsternpt.morebbboathud.mixin;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 //? if >=1.21.4 {
-/*import net.minecraft.client.render.RenderLayer;
-*///?}
+import net.minecraft.client.render.RenderLayer;
+//?}
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.napsternpt.morebbboathud.MoreBBBoatHudClient;
+import net.napsternpt.morebbboathud.ModuleConfigManager;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.luaj.vm2.Globals;
@@ -29,6 +30,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import uk.co.cablepost.bb_boat_hud.client.HudModule;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -43,6 +45,14 @@ public abstract class HudModuleMixin {
 	private static final Identifier BTN_NORMAL = Identifier.ofVanilla("widget/button");
 	private static final Identifier BTN_HIGHLIGHTED = Identifier.ofVanilla("widget/button_highlighted");
 	private static final Identifier BTN_DISABLED = Identifier.ofVanilla("widget/button_disabled");
+
+	private static final Identifier SLIDER_TEX = Identifier.ofVanilla("widget/slider");
+	private static final Identifier SLIDER_TEX_HIGHLIGHTED = Identifier.ofVanilla("widget/slider_highlighted");
+	private static final Identifier SLIDER_HANDLE = Identifier.ofVanilla("widget/slider_handle");
+	private static final Identifier SLIDER_HANDLE_HIGHLIGHTED = Identifier.ofVanilla("widget/slider_handle_highlighted");
+
+	private static final HashMap<String, double[]> sliderStates = new HashMap<>();
+	private static int moreBBBoatHud$sliderFrameCounter = 0;
 
 	@Shadow
 	private Globals globals;
@@ -67,16 +77,21 @@ public abstract class HudModuleMixin {
 		boolean menuOpen = MoreBBBoatHudClient.BUTTON_KEY.isPressed();
 		moreBBBoatHud$menuJustClosed = moreBBBoatHud$menuWasOpen && !menuOpen;
 		moreBBBoatHud$menuWasOpen = menuOpen;
+
+		moreBBBoatHud$sliderFrameCounter = 0;
 	}
 
 	@Inject(method = "<init>", at = @At("TAIL"))
 	private void onInit(CallbackInfo ci) {
-		globals.set("print", printFunction());
+		globals.set("print", print());
 		globals.set("renderButton", renderButton());
+		globals.set("renderSlider", renderSlider());
 		globals.set("onMenuOpen", onMenuOpen());
 		globals.set("onMenuClose", onMenuClose());
 		globals.set("getWidth", getSize(true));
 		globals.set("getHeight", getSize(false));
+		globals.set("getConfig", getConfig());
+		globals.set("setConfig", setConfig());
 	}
 
 	@Inject(method = "render", at = @At("RETURN"))
@@ -91,7 +106,7 @@ public abstract class HudModuleMixin {
 		}
 	}
 
-	private LuaValue printFunction() {
+	private LuaValue print() {
 		return new VarArgFunction() {
 			@Override
 			public Varargs invoke(Varargs v) {
@@ -123,7 +138,7 @@ public abstract class HudModuleMixin {
 			public Varargs invoke(Varargs v) {
 				int width = v.checkint(1);
 				int height = v.checkint(2);
-				boolean canBePressed = v.optboolean(3, true);
+				boolean canBeUsed = v.optboolean(3, true);
 				String anchor = v.optjstring(4, "MIDDLE_CENTER");
 				LuaValue callback = v.checkfunction(5);
 
@@ -145,11 +160,11 @@ public abstract class HudModuleMixin {
 					inv.invert();
 
 					Vector3f mouseLocal = new Vector3f((float) fmx, (float) fmy, 0f).mulPosition(inv);
-					boolean hovered = canBePressed
+					boolean hovered = canBeUsed
 							&& mouseLocal.x >= fx0 && mouseLocal.x < fx0 + fw
 							&& mouseLocal.y >= fy0 && mouseLocal.y < fy0 + fh;
 
-					if (canBePressed && MoreBBBoatHudClient.CLICKED) {
+					if (canBeUsed && MoreBBBoatHudClient.CLICKED) {
 						Vector3f clickLocal = new Vector3f((float) MoreBBBoatHudClient.CLICK_X, (float) MoreBBBoatHudClient.CLICK_Y, 0f).mulPosition(inv);
 						if (clickLocal.x >= fx0 && clickLocal.x < fx0 + fw
 								&& clickLocal.y >= fy0 && clickLocal.y < fy0 + fh) {
@@ -158,12 +173,108 @@ public abstract class HudModuleMixin {
 						}
 					}
 
-					Identifier tex = !canBePressed ? BTN_DISABLED : hovered ? BTN_HIGHLIGHTED : BTN_NORMAL;
+					Identifier tex = !canBeUsed ? BTN_DISABLED : hovered ? BTN_HIGHLIGHTED : BTN_NORMAL;
 					//? if >=1.21.4 {
-					/*ctx.drawGuiTexture(RenderLayer::getGuiTextured, tex, fx0, fy0, fw, fh);
-					*///?} else {
-					ctx.drawGuiTexture(tex, fx0, fy0, fw, fh);
-					//?}
+					ctx.drawGuiTexture(RenderLayer::getGuiTextured, tex, fx0, fy0, fw, fh);
+					//?} else {
+					/*ctx.drawGuiTexture(tex, fx0, fy0, fw, fh);
+					*///?}
+				});
+				return LuaValue.NIL;
+			}
+		};
+	}
+
+	private LuaValue renderSlider() {
+		return new VarArgFunction() {
+			@Override
+			public Varargs invoke(Varargs v) {
+				int width = v.checkint(1);
+				int height = v.checkint(2);
+				boolean canBeUsed = v.optboolean(3, true);
+				double minValue = v.checkdouble(4);
+				double maxValue = v.checkdouble(5);
+				String anchor = v.optjstring(6, "MIDDLE_CENTER");
+				LuaValue callback = v.checkfunction(7);
+
+				var client = MinecraftClient.getInstance();
+				double scale = client.getWindow().getScaleFactor();
+				double mouseX = client.mouse.getX() / scale;
+				double mouseY = client.mouse.getY() / scale;
+
+				int[] pos = anchoredPos(anchor, width, height);
+				final int fx0 = pos[0];
+				final int fy0 = pos[1];
+				final int fw = width;
+				final int fh = height;
+				final double fmx = mouseX;
+				final double fmy = mouseY;
+				final double fmin = minValue;
+				final double fmax = maxValue;
+
+				String id = "slider_" + (moreBBBoatHud$sliderFrameCounter++);
+				double initial = (minValue + maxValue) / 2.0;
+				sliderStates.putIfAbsent(id, new double[]{initial, 0});
+				final String fid = id;
+
+				drawCalls.add(ctx -> {
+					double[] state = sliderStates.get(fid);
+
+					Matrix4f inv = new Matrix4f(ctx.getMatrices().peek().getPositionMatrix());
+					inv.invert();
+
+					Vector3f mouseLocal = new Vector3f((float) fmx, (float) fmy, 0f).mulPosition(inv);
+
+					boolean hovered = canBeUsed
+							&& mouseLocal.x >= fx0 && mouseLocal.x < fx0 + fw
+							&& mouseLocal.y >= fy0 && mouseLocal.y < fy0 + fh;
+
+					if (canBeUsed) {
+						if (MoreBBBoatHudClient.CLICKED) {
+							Vector3f clickLocal = new Vector3f(
+								(float) MoreBBBoatHudClient.CLICK_X,
+								(float) MoreBBBoatHudClient.CLICK_Y, 0f
+							).mulPosition(inv);
+							if (clickLocal.x >= fx0 && clickLocal.x < fx0 + fw
+									&& clickLocal.y >= fy0 && clickLocal.y < fy0 + fh) {
+								MoreBBBoatHudClient.CLICKED = false;
+								state[0] = Math.clamp(
+                                        (clickLocal.x - fx0 - 4) / (fw - 8), 0, 1);
+								state[1] = 1;
+							}
+						} else if (state[1] == 1) {
+							state[0] = Math.clamp(
+                                    (mouseLocal.x - fx0 - 4) / (fw - 8), 0, 1);
+							if (!MoreBBBoatHudClient.MOUSE_DOWN) {
+								state[1] = 0;
+							}
+						}
+					}
+
+					double value = fmin + state[0] * (fmax - fmin);
+					globals.set("sliderValue", LuaValue.valueOf(value));
+					try {
+						callback.call();
+					} catch (LuaError e) {
+						error = "renderSlider: " + e.getMessage();
+					}
+					value = globals.get("sliderValue").todouble();
+					value = Math.clamp(value, fmin, fmax);
+					state[0] = (value - fmin) / (fmax - fmin);
+
+					boolean trackHighlighted = hovered || state[1] == 1;
+					Identifier trackTex = trackHighlighted ? SLIDER_TEX_HIGHLIGHTED : SLIDER_TEX;
+					Identifier handleTex = trackHighlighted ? SLIDER_HANDLE_HIGHLIGHTED : SLIDER_HANDLE;
+
+					int handleX = fx0 + (int) (state[0] * (fw - 8));
+
+					//? if >=1.21.4 {
+					ctx.drawGuiTexture(RenderLayer::getGuiTextured, trackTex, fx0, fy0, fw, fh);
+					ctx.drawGuiTexture(RenderLayer::getGuiTextured, handleTex, handleX, fy0, 8, fh);
+					//?} else {
+					/*ctx.drawGuiTexture(trackTex, fx0, fy0, fw, fh);
+					ctx.drawGuiTexture(handleTex, handleX, fy0, 8, fh);
+					*///?}
 				});
 				return LuaValue.NIL;
 			}
@@ -214,6 +325,44 @@ public abstract class HudModuleMixin {
 					fn.call();
 				} catch (LuaError e) {
 					error = "onMenuClose: " + e.getMessage();
+				}
+				return LuaValue.NIL;
+			}
+		};
+	}
+
+	private LuaValue getConfig() {
+		return new VarArgFunction() {
+			@Override
+			public Varargs invoke(Varargs v) {
+				String key = v.checkjstring(1);
+				String moduleId = ModuleConfigManager.moduleIdFromIdentifier(getIdentifier().toString());
+				Object value = ModuleConfigManager.get(moduleId, key);
+                return switch (value) {
+                    case Double d -> LuaValue.valueOf(d);
+                    case Boolean b -> LuaBoolean.valueOf(b);
+                    case String s -> LuaValue.valueOf(s);
+                    case null, default -> v.arg(2);
+                };
+            }
+		};
+	}
+
+	private LuaValue setConfig() {
+		return new VarArgFunction() {
+			@Override
+			public Varargs invoke(Varargs v) {
+				String key = v.checkjstring(1);
+				LuaValue val = v.arg(2);
+				String moduleId = ModuleConfigManager.moduleIdFromIdentifier(getIdentifier().toString());
+				if (val.isnil()) {
+					ModuleConfigManager.set(moduleId, key, null);
+				} else if (val.isboolean()) {
+					ModuleConfigManager.set(moduleId, key, val.toboolean());
+				} else if (val.isnumber()) {
+					ModuleConfigManager.set(moduleId, key, val.todouble());
+				} else if (val.isstring()) {
+					ModuleConfigManager.set(moduleId, key, val.tojstring());
 				}
 				return LuaValue.NIL;
 			}
