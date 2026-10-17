@@ -12,8 +12,8 @@ import uk.co.cablepost.bb_boat_hud.config.ModConfig;
 
 @Mixin(BbBoatHudClient.class)
 public class BbBoatHudClientMixin {
-	@Inject(method = "runLua", at = @At("TAIL"))
-	private static void clearClickAfterLua(CallbackInfo ci) {
+	@Inject(method = "renderHud", at = @At("TAIL"))
+	private static void clearClickAfterRender(CallbackInfo ci) {
 		MoreBBBoatHudClient.CLICKED = false;
 	}
 

@@ -2,9 +2,12 @@ package net.napsternpt.morebbboathud.mixin;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-//? if >=1.21.4 {
+//? if >=1.21.4 && <1.21.5 {
 import net.minecraft.client.render.RenderLayer;
 //?}
+//? if >=1.21.5 {
+/*import net.minecraft.client.gl.RenderPipelines;
+*///?}
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.Text;
@@ -12,14 +15,21 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.napsternpt.morebbboathud.MoreBBBoatHudClient;
 import net.napsternpt.morebbboathud.ModuleConfigManager;
+//? if <1.21.5 {
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+//?}
+//? if >=1.21.5 {
+/*import org.joml.Matrix3x2f;
+import org.joml.Vector2f;
+*///?}
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaBoolean;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.Varargs;
 import org.luaj.vm2.lib.VarArgFunction;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -42,19 +52,29 @@ public abstract class HudModuleMixin {
 	@Unique
 	private boolean moreBBBoatHud$menuJustClosed = false;
 
-	private static final Identifier BTN_NORMAL = Identifier.ofVanilla("widget/button");
-	private static final Identifier BTN_HIGHLIGHTED = Identifier.ofVanilla("widget/button_highlighted");
-	private static final Identifier BTN_DISABLED = Identifier.ofVanilla("widget/button_disabled");
+	@Unique
+    private static final Identifier BTN_NORMAL = Identifier.ofVanilla("widget/button");
+	@Unique
+    private static final Identifier BTN_HIGHLIGHTED = Identifier.ofVanilla("widget/button_highlighted");
+	@Unique
+    private static final Identifier BTN_DISABLED = Identifier.ofVanilla("widget/button_disabled");
 
-	private static final Identifier SLIDER_TEX = Identifier.ofVanilla("widget/slider");
-	private static final Identifier SLIDER_TEX_HIGHLIGHTED = Identifier.ofVanilla("widget/slider_highlighted");
-	private static final Identifier SLIDER_HANDLE = Identifier.ofVanilla("widget/slider_handle");
-	private static final Identifier SLIDER_HANDLE_HIGHLIGHTED = Identifier.ofVanilla("widget/slider_handle_highlighted");
+	@Unique
+    private static final Identifier SLIDER_TEX = Identifier.ofVanilla("widget/slider");
+	@Unique
+    private static final Identifier SLIDER_TEX_HIGHLIGHTED = Identifier.ofVanilla("widget/slider_highlighted");
+	@Unique
+    private static final Identifier SLIDER_HANDLE = Identifier.ofVanilla("widget/slider_handle");
+	@Unique
+    private static final Identifier SLIDER_HANDLE_HIGHLIGHTED = Identifier.ofVanilla("widget/slider_handle_highlighted");
 
-	private static final HashMap<String, double[]> sliderStates = new HashMap<>();
-	private static int moreBBBoatHud$sliderFrameCounter = 0;
+	@Unique
+    private static final HashMap<String, double[]> sliderStates = new HashMap<>();
+	@Unique
+    private static int moreBBBoatHud$sliderFrameCounter = 0;
 
-	@Shadow
+	@Final
+    @Shadow
 	private Globals globals;
 
 	@Shadow
@@ -106,7 +126,8 @@ public abstract class HudModuleMixin {
 		}
 	}
 
-	private LuaValue print() {
+	@Unique
+    private LuaValue print() {
 		return new VarArgFunction() {
 			@Override
 			public Varargs invoke(Varargs v) {
@@ -120,9 +141,16 @@ public abstract class HudModuleMixin {
 
 				Text text = Text.literal("[MoreBBBoatHud] ")
 						.append(Text.literal(message).styled(style -> style
+										//? if <1.21.5 {
 										.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
 												Text.literal("Message sent by module: ").append(Text.literal(moduleName)))
 										)
+										//?}
+										//? if >=1.21.5 {
+										/*.withHoverEvent(new HoverEvent.ShowText(
+												Text.literal("Message sent by module: ").append(Text.literal(moduleName))
+										))
+										*///?}
 										.withFormatting(Formatting.BLUE).withFormatting(Formatting.UNDERLINE))
 						);
 				assert MinecraftClient.getInstance().player != null;
@@ -132,7 +160,8 @@ public abstract class HudModuleMixin {
 		};
 	}
 
-	private LuaValue renderButton() {
+	@Unique
+    private LuaValue renderButton() {
 		return new VarArgFunction() {
 			@Override
 			public Varargs invoke(Varargs v) {
@@ -156,16 +185,27 @@ public abstract class HudModuleMixin {
 				final double fmy = mouseY;
 
 				drawCalls.add(ctx -> {
+					//? if <1.21.5 {
 					Matrix4f inv = new Matrix4f(ctx.getMatrices().peek().getPositionMatrix());
 					inv.invert();
 
 					Vector3f mouseLocal = new Vector3f((float) fmx, (float) fmy, 0f).mulPosition(inv);
+					//?}
+					//? if >=1.21.5 {
+					/*Matrix3x2f inv = new Matrix3x2f(ctx.getMatrices()).invert();
+					Vector2f mouseLocal = inv.transformPosition((float) fmx, (float) fmy, new Vector2f());
+					*///?}
 					boolean hovered = canBeUsed
 							&& mouseLocal.x >= fx0 && mouseLocal.x < fx0 + fw
 							&& mouseLocal.y >= fy0 && mouseLocal.y < fy0 + fh;
 
 					if (canBeUsed && MoreBBBoatHudClient.CLICKED) {
+						//? if <1.21.5 {
 						Vector3f clickLocal = new Vector3f((float) MoreBBBoatHudClient.CLICK_X, (float) MoreBBBoatHudClient.CLICK_Y, 0f).mulPosition(inv);
+						//?}
+						//? if >=1.21.5 {
+						/*Vector2f clickLocal = inv.transformPosition((float) MoreBBBoatHudClient.CLICK_X, (float) MoreBBBoatHudClient.CLICK_Y, new Vector2f());
+						*///?}
 						if (clickLocal.x >= fx0 && clickLocal.x < fx0 + fw
 								&& clickLocal.y >= fy0 && clickLocal.y < fy0 + fh) {
 							MoreBBBoatHudClient.CLICKED = false;
@@ -174,10 +214,14 @@ public abstract class HudModuleMixin {
 					}
 
 					Identifier tex = !canBeUsed ? BTN_DISABLED : hovered ? BTN_HIGHLIGHTED : BTN_NORMAL;
-					//? if >=1.21.4 {
-					ctx.drawGuiTexture(RenderLayer::getGuiTextured, tex, fx0, fy0, fw, fh);
-					//?} else {
+					//? if <1.21.4 {
 					/*ctx.drawGuiTexture(tex, fx0, fy0, fw, fh);
+					*///?}
+					//? if >=1.21.4 && <1.21.5 {
+					ctx.drawGuiTexture(RenderLayer::getGuiTextured, tex, fx0, fy0, fw, fh);
+					//?}
+					//? if >=1.21.5 {
+					/*ctx.drawGuiTexture(RenderPipelines.GUI_TEXTURED, tex, fx0, fy0, fw, fh);
 					*///?}
 				});
 				return LuaValue.NIL;
@@ -185,7 +229,8 @@ public abstract class HudModuleMixin {
 		};
 	}
 
-	private LuaValue renderSlider() {
+	@Unique
+    private LuaValue renderSlider() {
 		return new VarArgFunction() {
 			@Override
 			public Varargs invoke(Varargs v) {
@@ -221,10 +266,16 @@ public abstract class HudModuleMixin {
 				drawCalls.add(ctx -> {
 					double[] state = sliderStates.get(fid);
 
+					//? if <1.21.5 {
 					Matrix4f inv = new Matrix4f(ctx.getMatrices().peek().getPositionMatrix());
 					inv.invert();
 
 					Vector3f mouseLocal = new Vector3f((float) fmx, (float) fmy, 0f).mulPosition(inv);
+					//?}
+					//? if >=1.21.5 {
+					/*Matrix3x2f inv = new Matrix3x2f(ctx.getMatrices()).invert();
+					Vector2f mouseLocal = inv.transformPosition((float) fmx, (float) fmy, new Vector2f());
+					*///?}
 
 					boolean hovered = canBeUsed
 							&& mouseLocal.x >= fx0 && mouseLocal.x < fx0 + fw
@@ -232,10 +283,19 @@ public abstract class HudModuleMixin {
 
 					if (canBeUsed) {
 						if (MoreBBBoatHudClient.CLICKED) {
+							//? if <1.21.5 {
 							Vector3f clickLocal = new Vector3f(
 								(float) MoreBBBoatHudClient.CLICK_X,
 								(float) MoreBBBoatHudClient.CLICK_Y, 0f
 							).mulPosition(inv);
+							//?}
+							//? if >=1.21.5 {
+							/*Vector2f clickLocal = inv.transformPosition(
+								(float) MoreBBBoatHudClient.CLICK_X,
+								(float) MoreBBBoatHudClient.CLICK_Y,
+								new Vector2f()
+							);
+							*///?}
 							if (clickLocal.x >= fx0 && clickLocal.x < fx0 + fw
 									&& clickLocal.y >= fy0 && clickLocal.y < fy0 + fh) {
 								MoreBBBoatHudClient.CLICKED = false;
@@ -269,12 +329,17 @@ public abstract class HudModuleMixin {
 
 					int handleX = fx0 + (int) (state[0] * (fw - 8));
 
-					//? if >=1.21.4 {
-					ctx.drawGuiTexture(RenderLayer::getGuiTextured, trackTex, fx0, fy0, fw, fh);
-					ctx.drawGuiTexture(RenderLayer::getGuiTextured, handleTex, handleX, fy0, 8, fh);
-					//?} else {
+					//? if <1.21.4 {
 					/*ctx.drawGuiTexture(trackTex, fx0, fy0, fw, fh);
 					ctx.drawGuiTexture(handleTex, handleX, fy0, 8, fh);
+					*///?}
+					//? if >=1.21.4 && <1.21.5 {
+					ctx.drawGuiTexture(RenderLayer::getGuiTextured, trackTex, fx0, fy0, fw, fh);
+					ctx.drawGuiTexture(RenderLayer::getGuiTextured, handleTex, handleX, fy0, 8, fh);
+					//?}
+					//? if >=1.21.5 {
+					/*ctx.drawGuiTexture(RenderPipelines.GUI_TEXTURED, trackTex, fx0, fy0, fw, fh);
+					ctx.drawGuiTexture(RenderPipelines.GUI_TEXTURED, handleTex, handleX, fy0, 8, fh);
 					*///?}
 				});
 				return LuaValue.NIL;
@@ -282,7 +347,8 @@ public abstract class HudModuleMixin {
 		};
 	}
 
-	private LuaValue onMenuOpen() {
+	@Unique
+    private LuaValue onMenuOpen() {
 		return new VarArgFunction() {
 			@Override
 			public Varargs invoke(Varargs v) {
@@ -302,17 +368,30 @@ public abstract class HudModuleMixin {
 				fn.call();
 
 				drawCalls.add(idx, ctx -> {
+					//? if <1.21.5 {
 					ctx.getMatrices().push();
 					ctx.getMatrices().loadIdentity();
 					ctx.getMatrices().translate(cx, cy, 0f);
+					//?}
+					//? if >=1.21.5 {
+					/*ctx.getMatrices().pushMatrix();
+					ctx.getMatrices().identity();
+					ctx.getMatrices().set(ctx.getMatrices().translate(cx, cy));
+					*///?}
 				});
+				//? if <1.21.5 {
 				drawCalls.add(ctx -> ctx.getMatrices().pop());
+				//?}
+				//? if >=1.21.5 {
+				/*drawCalls.add(ctx -> ctx.getMatrices().popMatrix());
+				*///?}
 				return LuaValue.NIL;
 			}
 		};
 	}
 
-	private LuaValue onMenuClose() {
+	@Unique
+    private LuaValue onMenuClose() {
 		return new VarArgFunction() {
 			@Override
 			public Varargs invoke(Varargs v) {
@@ -332,7 +411,8 @@ public abstract class HudModuleMixin {
 		};
 	}
 
-	private LuaValue getConfig() {
+	@Unique
+    private LuaValue getConfig() {
 		return new VarArgFunction() {
 			@Override
 			public Varargs invoke(Varargs v) {
@@ -349,7 +429,8 @@ public abstract class HudModuleMixin {
 		};
 	}
 
-	private LuaValue setConfig() {
+	@Unique
+    private LuaValue setConfig() {
 		return new VarArgFunction() {
 			@Override
 			public Varargs invoke(Varargs v) {
@@ -370,7 +451,8 @@ public abstract class HudModuleMixin {
 		};
 	}
 
-	private static int[] screenAnchorPos(String anchor, int w, int h) {
+	@Unique
+    private static int[] screenAnchorPos(String anchor, int w, int h) {
 		String[] parts = anchor.split("_");
 		String vertical = parts.length > 0 ? parts[0] : "MIDDLE";
 		String horizontal = parts.length > 1 ? parts[1] : "CENTER";
@@ -387,7 +469,8 @@ public abstract class HudModuleMixin {
 		return new int[]{x, y};
 	}
 
-	private static int[] anchoredPos(String anchor, int width, int height) {
+	@Unique
+    private static int[] anchoredPos(String anchor, int width, int height) {
 		String[] parts = anchor.split("_");
 		String vertical = parts.length > 0 ? parts[0] : "MIDDLE";
 		String horizontal = parts.length > 1 ? parts[1] : "CENTER";
@@ -404,7 +487,8 @@ public abstract class HudModuleMixin {
 		return new int[]{x, y};
 	}
 
-	private LuaValue getSize(boolean returnWidth) {
+	@Unique
+    private LuaValue getSize(boolean returnWidth) {
 		String namespace = getIdentifier().getNamespace();
 		return new VarArgFunction() {
 			@Override

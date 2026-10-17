@@ -5,6 +5,9 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+//? if >=1.21.9 {
+/*import net.minecraft.util.Identifier;
+*///?}
 import org.luaj.vm2.LuaValue;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
@@ -20,7 +23,12 @@ public class MoreBBBoatHudClient implements ClientModInitializer {
 			"key.morebbboathud.button",
 			InputUtil.Type.KEYSYM,
 			GLFW.GLFW_KEY_UNKNOWN,
+			//? if <1.21.9 {
 			"key.category.morebbboathud"
+			//?}
+			//? if >=1.21.9 {
+			/*KeyBinding.Category.create(Identifier.of("morebbboathud", "menu"))
+			*///?}
 	));
 
 	public static boolean CLICKED = false;

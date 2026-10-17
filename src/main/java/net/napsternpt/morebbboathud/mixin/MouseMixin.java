@@ -2,6 +2,9 @@ package net.napsternpt.morebbboathud.mixin;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.Mouse;
+//? if >=1.21.9 {
+/*import net.minecraft.client.input.MouseInput;
+*///?}
 import net.napsternpt.morebbboathud.MoreBBBoatHudClient;
 import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
@@ -12,7 +15,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Mouse.class)
 public class MouseMixin {
 	@Inject(method = "onMouseButton", at = @At("HEAD"), cancellable = true)
+	//? if <1.21.9 {
 	private void freeMouseWhileButtonHeld(long window, int button, int action, int mods, CallbackInfo ci) {
+	//?}
+	//? if >=1.21.9 {
+	/*private void freeMouseWhileButtonHeld(long window, MouseInput input, int action, CallbackInfo ci) {
+		int button = input.button();
+	*///?}
 		MinecraftClient client = MinecraftClient.getInstance();
 		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
 			MoreBBBoatHudClient.MOUSE_DOWN = (action == GLFW.GLFW_PRESS);
